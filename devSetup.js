@@ -9,24 +9,22 @@ function setup(path) {
     }
     console.log(process.cwd());
     gitRepos.forEach(function(repo){
-        var cmd = 'git clone ' + repo.url;
+        var cmd = 'git clone ' + repo;
         exec(cmd, function(error, stdout, stderr) {
             var foo = stderr.split(' ')[2];
             var repoPath = foo.substring(1, foo.length - 5);
             console.log(repoPath);
             debugger;
-            exec('bower link', { cwd: process.cwd() + '\\' + repoPath}, function(error2, stdout2, sterror2) {
-                console.log(stdout2);
-                console.log(sterror2);
-                console.log(error2);
-            });
+            exec('bower link', { 
+                    cwd: process.cwd() + '/' + repoPath 
+                }, function(error2, stdout2, sterror2) { });
         });
     });
 }
 
 if (args[0] === 'setup') {
     setup(args[1]);
-else {
+} else {
     console.log('You lost the game');
 }
 
