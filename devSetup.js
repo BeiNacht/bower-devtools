@@ -1,6 +1,30 @@
 var gitRepos = require('./gitRepos').repositories;
 var args = process.argv.slice(2);
-var exec = require('child_process').exec;
+var Promise = require('rsvp');
+var exec = Promise.denodeify(require('child_process').exec);
+
+function cloneRepo(repo) {
+    console.log("git clone: ", repo.url)
+    return exec('git clone ' + repo.url + ' ' + repo.name)
+        .then(() => repo);
+}
+
+function bowerLink(repo) {
+    console.log("bower link:", repo.name);
+    return exec('bower link', {
+            cwd: process.cwd() + '/' + repo.name
+        })
+        .then(() => repo);
+}
+
+function checkGit() {
+    return exec('git --version')
+        .catch((error) => {
+            console.log("Get yourself git, dude!");
+            throw error;
+        });
+}
+
 
 function setup(path) {
     console.log(process.cwd());
@@ -8,18 +32,24 @@ function setup(path) {
         process.chdir(path);
     }
     console.log(process.cwd());
-    gitRepos.forEach(function(repo){
-        var cmd = 'git clone ' + repo;
-        exec(cmd, function(error, stdout, stderr) {
-            var foo = stderr.split(' ')[2];
-            var repoPath = foo.substring(1, foo.length - 5);
-            console.log(repoPath);
-            debugger;
-            exec('bower link', { 
-                    cwd: process.cwd() + '/' + repoPath 
-                }, function(error2, stdout2, sterror2) { });
-        });
+
+    var pendingTasks = gitRepos.map((repo) => {
+        return cloneRepo(repo)
+            .then(bowerLink)
+            .then((repo) => {
+                console.log("Ready: ", repo.name);
+            })
+            .catch(function(error) {
+                console.error("Error", error);
+            })
     });
+
+    checkGit()
+        .then(
+            Promise.all(pendingTasks)
+            .then(() => {
+                console.log("Done! :-)");
+            }));
 }
 
 if (args[0] === 'setup') {
